@@ -1,59 +1,103 @@
 import express from "express";
 import dotenv from "dotenv";
 import { connection } from "../config/db.js";
-const router = express.Router();
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-router.post("/register",async(req,resp)=> {
-    try {
-        const db = await connection();
-        const {name,email,password} = req.body;
+dotenv.config();
 
-        const existingUser = await db.collection("users").findOne({email});
-        if (existingUser) {
-            return resp.status(400).send("User already exists")
-        }
+const router = express.Router();
 
-        const hashedPassword = await bcrypt.hash(password,10);
+// ✅ REGISTER
+router.post("/register", async (req, resp) => {
+  try {
+    const db = await connection();
+    const { name, email, password } = req.body;
 
-        await db.collection("users").insertOne({
-            name,
-            email,
-            password: hashedPassword,
-            role: "user"
-        });
-
-        resp.send("User Registered Successfully");
-
-    } catch (error) {
-        console.error("Error occurred while registering user:", error);
-        resp.status(500).send("Internal server error");
+    // Validation
+    if (!name || !email || !password) {
+      return resp.status(400).json({
+        message: "All fields are required"
+      });
     }
-})
 
-router.post("/login",async(req,resp)=> {
-    try {
-        const db = await connection();
-        const {email,password} = req.body;
+    const existingUser = await db.collection("users").findOne({ email });
 
-        const user = await db.collection("users").findOne({email});
-        if (!user) {
-            return resp.status(400).send("Invalid email or password");
-        }
-
-        const isMatch = await bcrypt.compare(password,user.password);
-        if (!isMatch) {
-            return resp.status(400).send("Invalid email or password");
-        }
-        const token = jwt.sign({userId: user._id, role: user.role},process.env.SECRET_KEY,{expiresIn: "1d"});
-        resp.send({token});
-
+    if (existingUser) {
+      return resp.status(400).json({
+        message: "User already exists"
+      });
     }
-        catch (error) {
-        console.error("Error occurred while logging in user:", error);
-        resp.status(500).send("Internal server error");
-        }
-})
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.collection("users").insertOne({
+      name,
+      email,
+      password: hashedPassword,
+      role: "user"
+    });
+
+    resp.status(201).json({
+      message: "User Registered Successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+    resp.status(500).json({
+      message: "Internal server error"
+    });
+  }
+});
+
+// ✅ LOGIN
+router.post("/login", async (req, resp) => {
+  try {
+    const db = await connection();
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return resp.status(400).json({
+        message: "Email and password required"
+      });
+    }
+
+    const user = await db.collection("users").findOne({ email });
+
+    if (!user) {
+      return resp.status(400).json({
+        message: "Invalid email or password"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return resp.status(400).json({
+        message: "Invalid email or password"
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.SECRET_KEY,
+      { expiresIn: "1d" }
+    );
+
+    resp.status(200).json({
+      message: "Login successful",
+      token,
+      role: user.role,
+      name: user.name
+    });
+
+  } catch (error) {
+    console.error(error);
+    resp.status(500).json({
+      message: "Internal server error"
+    });
+  }
+});
 
 export default router;

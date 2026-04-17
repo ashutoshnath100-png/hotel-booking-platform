@@ -33,8 +33,8 @@ router.post("/book",auth,async(req,resp)=> {
         const totalPrice = days * hotel.price;
 
         await db.collection("bookings").insertOne({
-            userId: req.user._id,
-            hotelId,
+            userId: req.user.userId,
+            hotelId: new ObjectId(hotelId),
             checkIn,
             checkOut,
             totalPrice
@@ -46,5 +46,22 @@ router.post("/book",auth,async(req,resp)=> {
             resp.status(500).send("Internal server error");
     }
 })
+
+
+router.get("/", auth, async (req, res) => {
+  try {
+    const db = await connection();
+
+    if (req.user.role !== "admin") {
+      return res.status(403).send("Access denied");
+    }
+
+    const bookings = await db.collection("bookings").find().toArray();
+
+    res.send(bookings);
+  } catch (err) {
+    res.status(500).send("Error");
+  }
+});
 
 export default router;
