@@ -6,6 +6,7 @@ import hotelRoutes from "./routes/hotel.js";
 import bookingRoutes from "./routes/booking.js";
 import adminRoutes from "./routes/admin.js";
 import cors from "cors";
+import reviewRoutes from "./routes/review.js";
 
 const app = express();
 dotenv.config();
@@ -16,6 +17,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 await connectDB();
 app.get('/',(req,resp) => {

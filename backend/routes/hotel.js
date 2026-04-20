@@ -39,18 +39,46 @@ router.get("/", async (req, resp) => {
     }
 })
 
-router.get("/search", async (req, resp) => {
-    try {
-        const db = await connection();
-        const { location } = req.query;
+router.get("/search", async (req, res) => {
+  try {
+    const db = await connection();
 
-        const hotels = await db.collection("hotels").find({ location }).toArray();
-        resp.send(hotels);
+    const { location, minPrice, maxPrice, rating } = req.query;
+
+    let query = {};
+
+    // ✅ Location filter
+    if (location && location.trim() !== "") {
+      query.location = { $regex: location, $options: "i" };
     }
-    catch (error) {
-        resp.status(500).send("Internal server error");
+
+    // ✅ Price filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+
+      if (minPrice && !isNaN(minPrice)) {
+        query.price.$gte = Number(minPrice);
+      }
+
+      if (maxPrice && !isNaN(maxPrice)) {
+        query.price.$lte = Number(maxPrice);
+      }
     }
-})
+
+    // ✅ Rating filter
+    if (rating && !isNaN(rating)) {
+      query.rating = { $gte: Number(rating) };
+    }
+
+    const hotels = await db.collection("hotels").find(query).toArray();
+
+    res.send(hotels);
+
+  } catch (error) {
+    console.error("Search error:", error);
+    res.status(500).send("Internal server error");
+  }
+});
 
 router.delete("/:id", auth, async (req, res) => {
     try {

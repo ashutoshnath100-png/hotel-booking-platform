@@ -4,6 +4,7 @@ import Hotels from "./pages/Hotels";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import HotelDetails from "./pages/HotelDetails";
 
 function App() {
   return (
@@ -33,6 +34,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+
+        <Route path="/hotel/:id" element={<HotelDetails />} />
 
       </Routes>
     </BrowserRouter>
