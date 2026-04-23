@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import { connection as connectDB} from "./config/db.js";
+import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import hotelRoutes from "./routes/hotel.js";
 import bookingRoutes from "./routes/booking.js";
@@ -19,11 +19,11 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/reviews", reviewRoutes);
 
-await connectDB();
+connectDB();
 app.get('/',(req,resp) => {
     resp.send("Server is working");
 });
 
-app.listen(2003,() => {
-    console.log("Server is running on port 2003");
+app.listen(process.env.PORT,() => {
+    console.log(`Server is running on port ${process.env.PORT}`);
 });

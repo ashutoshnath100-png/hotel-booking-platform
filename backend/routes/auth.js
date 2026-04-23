@@ -1,101 +1,105 @@
 import express from "express";
-import dotenv from "dotenv";
-import { connection } from "../config/db.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-
-dotenv.config();
+import User from "../models/User.js";
 
 const router = express.Router();
 
+
 // ✅ REGISTER
-router.post("/register", async (req, resp) => {
+router.post("/register", async (req, res) => {
   try {
-    const db = await connection();
     const { name, email, password } = req.body;
 
     // Validation
     if (!name || !email || !password) {
-      return resp.status(400).json({
-        message: "All fields are required"
+      return res.status(400).json({
+        message: "All fields are required",
       });
     }
 
-    const existingUser = await db.collection("users").findOne({ email });
+    // Check existing user
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return resp.status(400).json({
-        message: "User already exists"
+      return res.status(400).json({
+        message: "User already exists",
       });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.collection("users").insertOne({
+    // Create user
+    const newUser = new User({
       name,
       email,
       password: hashedPassword,
-      role: "user"
     });
 
-    resp.status(201).json({
-      message: "User Registered Successfully"
+    await newUser.save();
+
+    res.status(201).json({
+      message: "User Registered Successfully",
     });
 
   } catch (error) {
-    console.error(error);
-    resp.status(500).json({
-      message: "Internal server error"
+    console.error("REGISTER ERROR:", error);
+    res.status(500).json({
+      message: "Internal server error",
     });
   }
 });
 
+
 // ✅ LOGIN
-router.post("/login", async (req, resp) => {
+router.post("/login", async (req, res) => {
   try {
-    const db = await connection();
     const { email, password } = req.body;
 
     // Validation
     if (!email || !password) {
-      return resp.status(400).json({
-        message: "Email and password required"
+      return res.status(400).json({
+        message: "Email and password required",
       });
     }
 
-    const user = await db.collection("users").findOne({ email });
+    // Find user
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return resp.status(400).json({
-        message: "Invalid email or password"
+      return res.status(400).json({
+        message: "Invalid email or password",
       });
     }
 
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return resp.status(400).json({
-        message: "Invalid email or password"
+      return res.status(400).json({
+        message: "Invalid email or password",
       });
     }
 
+    // Generate token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.SECRET_KEY,
       { expiresIn: "1d" }
     );
 
-    resp.status(200).json({
+    res.status(200).json({
       message: "Login successful",
       token,
       role: user.role,
-      name: user.name
+      name: user.name,
     });
 
   } catch (error) {
-    console.error(error);
-    resp.status(500).json({
-      message: "Internal server error"
+    console.error("LOGIN ERROR:", error);
+    res.status(500).json({
+      message: "Internal server error",
     });
   }
 });

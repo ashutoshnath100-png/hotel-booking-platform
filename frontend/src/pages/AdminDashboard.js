@@ -186,10 +186,10 @@ function AdminDashboard() {
             <div className="bg-white p-6 rounded shadow">
               <h2 className="mb-4 font-semibold">Bookings</h2>
               {bookings.map((b, i) => (
-                <div key={i} className="border-b py-2">
-                  {b.hotelId} - ₹{b.totalPrice}
-                </div>
-              ))}
+  <div key={i} className="border-b py-2">
+    {b.hotelId?.name || "Hotel"} - ₹{b.totalPrice}
+  </div>
+))}
             </div>
           </>
         )}

@@ -1,68 +1,77 @@
 import express from "express";
-import { connection } from "../config/db.js";
 import auth from "../middleware/auth.js";
-import { ObjectId } from "mongodb";
+import Review from "../models/Review.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
-// ➕ Add Review
+
+// ➕ ADD REVIEW
 router.post("/add", auth, async (req, res) => {
   try {
-    const db = await connection();
     const { hotelId, rating, comment } = req.body;
 
     if (!hotelId || !rating) {
       return res.status(400).send("Missing fields");
     }
 
-    await db.collection("reviews").insertOne({
+    const newReview = new Review({
       userId: req.user.userId,
-      hotelId: new ObjectId(hotelId),
+      hotelId,
       rating,
       comment,
-      createdAt: new Date()
     });
 
+    await newReview.save();
+
     res.send("Review added");
-  } catch {
+
+  } catch (err) {
+    console.error("ADD REVIEW ERROR:", err);
     res.status(500).send("Error");
   }
 });
 
-// 📥 Get Reviews by Hotel
+
+// 📥 GET REVIEWS BY HOTEL
 router.get("/:hotelId", async (req, res) => {
-  const db = await connection();
+  try {
+    const reviews = await Review.find({
+      hotelId: req.params.hotelId,
+    }).populate("userId", "name");
 
-  const reviews = await db.collection("reviews")
-    .find({ hotelId: new ObjectId(req.params.hotelId) })
-    .toArray();
+    res.send(reviews);
 
-  res.send(reviews);
+  } catch (err) {
+    console.error("GET REVIEWS ERROR:", err);
+    res.status(500).send("Error");
+  }
 });
 
+
+// ⭐ GET AVERAGE RATING
 router.get("/average/:hotelId", async (req, res) => {
   try {
-    const db = await connection();
-
-    const result = await db.collection("reviews").aggregate([
+    const result = await Review.aggregate([
       {
         $match: {
-          hotelId: new ObjectId(req.params.hotelId)
-        }
+          hotelId: new mongoose.Types.ObjectId(req.params.hotelId),
+        },
       },
       {
         $group: {
           _id: "$hotelId",
-          avgRating: { $avg: "$rating" }
-        }
-      }
-    ]).toArray();
+          avgRating: { $avg: "$rating" },
+        },
+      },
+    ]);
 
     res.send({
-      avgRating: result[0]?.avgRating || 0
+      avgRating: result[0]?.avgRating || 0,
     });
 
   } catch (err) {
+    console.error("AVG RATING ERROR:", err);
     res.status(500).send("Error");
   }
 });
